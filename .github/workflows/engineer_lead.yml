@@ -2,8 +2,8 @@ name: Engineer Lead Score Update
 
 on:
   schedule:
-    # Run every 3 hours
-    - cron: "0 */3 * * *"
+    # Run daily at 7am PST (3pm UTC)
+    - cron: "0 15 * * *"
   workflow_dispatch: # Allow manual trigger from GitHub UI
 
 jobs:
