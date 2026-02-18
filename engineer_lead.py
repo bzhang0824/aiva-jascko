@@ -176,10 +176,10 @@ def main():
 
     possible_list = []
     for _, row in blank_df.iterrows():
-        arch = row["Architect"]
+        arch = str(row["Architect"]) if pd.notna(row["Architect"]) else ""
 
         pe_list = suggest_possible_engineers(
-            arch or "",
+            arch,
             names_list,
             eng_index
         )
