@@ -3,6 +3,7 @@ import json
 import pandas as pd
 from sqlalchemy import create_engine, text
 from rapidfuzz import process, fuzz
+from datetime import datetime
 import re
 
 # ----------------------------------------------------------
@@ -146,12 +147,66 @@ def compute_lead_score(row) -> int:
     return score  # always between 1–4
 
 # ----------------------------------------------------------
+# Disqualify leads with current-year-or-earlier dates
+# ----------------------------------------------------------
+
+YEAR_RE = re.compile(r"\b(20\d{2})\b")
+
+def _extract_min_year(val) -> int | None:
+    """Extract the smallest 4-digit year from a string like 'Early 2026' or 'Q1 2027'."""
+    if pd.isna(val) or not str(val).strip():
+        return None
+    years = [int(y) for y in YEAR_RE.findall(str(val))]
+    return min(years) if years else None
+
+def disqualify_current_year_or_earlier():
+    """Set Qualified='No' for rows where groundbreaking or completion year <= current year."""
+    current_year = datetime.now().year
+    print(f"Checking for qualified leads with groundbreaking/completion year <= {current_year}...")
+
+    df = pd.read_sql(
+        'SELECT "Article Link", "Project Name", "Groundbreaking Year", "Completion Year" '
+        'FROM general_internal_scored WHERE "Qualified" = \'Yes\'',
+        engine
+    )
+
+    to_disqualify = []
+    for _, row in df.iterrows():
+        gb_year = _extract_min_year(row["Groundbreaking Year"])
+        comp_year = _extract_min_year(row["Completion Year"])
+
+        if (gb_year and gb_year <= current_year) or (comp_year and comp_year <= current_year):
+            to_disqualify.append((row["Article Link"], row["Project Name"]))
+
+    if not to_disqualify:
+        print("No leads to disqualify.")
+        return
+
+    with engine.begin() as conn:
+        for url, project in to_disqualify:
+            conn.execute(
+                text("""
+                    UPDATE general_internal_scored
+                    SET "Qualified" = 'No'
+                    WHERE "Article Link" = :url
+                    AND "Project Name" = :project
+                """),
+                {"url": url, "project": project}
+            )
+
+    print(f"Disqualified {len(to_disqualify)} leads with groundbreaking/completion year <= {current_year}.")
+
+# ----------------------------------------------------------
 # MAIN
 # ----------------------------------------------------------
 
 def main():
 
-    print("Loading table general_internal_scored...")
+    # Step 1: Disqualify leads that are too far along
+    disqualify_current_year_or_earlier()
+
+    # Step 2: Fill in engineer correlations for remaining qualified leads
+    print("\nLoading table general_internal_scored...")
     df = pd.read_sql("SELECT * FROM general_internal_scored", engine)
 
     if "Architect" not in df.columns:
