@@ -1,0 +1,25 @@
+name: Engineer Lead Score Update
+
+on:
+  schedule:
+    # Run every 3 hours
+    - cron: "0 */3 * * *"
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+jobs:
+  update-leads:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run engineer lead scoring
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python engineer_lead.py
