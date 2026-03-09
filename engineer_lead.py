@@ -166,7 +166,7 @@ def disqualify_current_year_or_earlier():
 
     df = pd.read_sql(
         'SELECT "Article Link", "Project Name", "Groundbreaking Year", "Completion Year" '
-        'FROM general_internal_scored WHERE "Qualified" = \'Yes\'',
+        'FROM jascko_internal_scored_v2 WHERE "Qualified" = \'Yes\'',
         engine
     )
 
@@ -186,7 +186,7 @@ def disqualify_current_year_or_earlier():
         for url, project in to_disqualify:
             conn.execute(
                 text("""
-                    UPDATE general_internal_scored
+                    UPDATE jascko_internal_scored_v2
                     SET "Qualified" = 'No'
                     WHERE "Article Link" = :url
                     AND "Project Name" = :project
@@ -206,11 +206,11 @@ def main():
     disqualify_current_year_or_earlier()
 
     # Step 2: Fill in engineer correlations for remaining qualified leads
-    print("\nLoading table general_internal_scored...")
-    df = pd.read_sql("SELECT * FROM general_internal_scored", engine)
+    print("\nLoading table jascko_internal_scored_v2...")
+    df = pd.read_sql("SELECT * FROM jascko_internal_scored_v2", engine)
 
     if "Architect" not in df.columns:
-        raise RuntimeError("Table general_internal_scored does not have an 'Architect' column.")
+        raise RuntimeError("Table jascko_internal_scored_v2 does not have an 'Architect' column.")
 
     # Only process qualified rows where Possible Engineer is blank/null
     blank_mask = (
@@ -255,7 +255,7 @@ def main():
         for idx, row in blank_df.iterrows():
             conn.execute(
                 text("""
-                    UPDATE general_internal_scored
+                    UPDATE jascko_internal_scored_v2
                     SET "Possible Engineer" = :pe,
                         "Lead Score" = :ls
                     WHERE "Article Link" = :url

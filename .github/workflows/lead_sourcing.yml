@@ -1,0 +1,110 @@
+name: JASCKO South Florida Lead Sourcing
+
+on:
+  schedule:
+    # Daily at 8:00 PM PDT = 3:00 AM UTC (next day)
+    - cron: "0 3 * * *"
+  workflow_dispatch:  # Allow manual trigger from GitHub UI
+
+jobs:
+  scrape-and-upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    defaults:
+      run:
+        working-directory: lead_sourcing
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Stage 1 — Urbanize Miami
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python3 -m src.scrape_urbanize_miami
+
+      - name: Stage 1 — Florida YIMBY
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python3 -m src.scrape_florida_yimby
+
+      - name: Stage 1 — The Real Deal Miami
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python3 -m src.scrape_therealdeal_miami
+
+      - name: Stage 1 — Bisnow Miami
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OXYLABS_SERVER: ${{ secrets.OXYLABS_SERVER }}
+          OXYLABS_USERNAME: ${{ secrets.OXYLABS_USERNAME }}
+          OXYLABS_PASSWORD: ${{ secrets.OXYLABS_PASSWORD }}
+        run: python3 -m src.scrape_bisnow_miami
+
+      - name: Stage 1 — South Florida Business Journal
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python3 -m src.scrape_sfbj
+
+      - name: Stage 1 — GlobeSt
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python3 -m src.scrape_globest
+
+      - name: Stage 1 — RE Business Online
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python3 -m src.scrape_rebusiness
+
+      - name: Stage 1 — Condo Black Book
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python3 -m src.scrape_condo_black_book
+
+      - name: Stage 1 — Tavily AI Search
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+        run: python3 -m src.search_tavily
+
+      - name: Stage 2 — Pre-qualify articles
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: python3 -m src.prequalify
+
+      - name: Stage 3 — SOP extraction
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: python3 -m src.extract_articles
+
+      - name: Stage 4 — Upload to jascko_internal_scored_v2
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python3 -m src.upload_to_db --confirm
+
+      - name: Stage 5 — Assign Canonical Project Names
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        working-directory: .
+        run: python3 group_projects.py --table jascko_internal_scored_v2 --apply-live
