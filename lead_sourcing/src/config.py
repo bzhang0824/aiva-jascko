@@ -84,6 +84,7 @@ TAVILY_MAX_RESULTS = 20
 
 # Domains we already scrape directly — skip these in Tavily results
 TAVILY_EXCLUDE_DOMAINS = [
+    # Our own scrapers — already covered
     "miami.urbanize.city",
     "floridayimby.com",
     "therealdeal.com",
@@ -92,6 +93,32 @@ TAVILY_EXCLUDE_DOMAINS = [
     "globest.com",
     "rebusinessonline.com",
     "condoblackbook.com",
+    # Social media — can't scrape content
+    "instagram.com",
+    "facebook.com",
+    "tiktok.com",
+    "youtube.com",
+    "twitter.com",
+    "x.com",
+    "threads.com",
+    "linkedin.com",
+    # Real estate listing sites — not news articles
+    "zillow.com",
+    "realtor.com",
+    "redfin.com",
+    "trulia.com",
+    "livabl.com",
+    "condosandcondos.com",
+    "miamiresidential.com",
+    "manhattanmiami.com",
+    "luxlifemiamiblog.com",
+    # Government docs / zoning PDFs — not useful as leads
+    "broward.org",
+    "fortlauderdale.legistar.com",
+    "cloudfront.net",
+    # General event / calendar noise
+    "planhub.com",
+    "brgintl.com",
 ]
 
 TAVILY_QUERIES = [
